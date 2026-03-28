@@ -1,137 +1,231 @@
-// src/app/page.tsx
+'use client'
+import { Suspense, useState } from 'react'
+import { signIn } from 'next-auth/react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { db } from '@/lib/db'
-import { ProductCard } from '@/components/product/ProductCard'
+import toast from 'react-hot-toast'
 
-export default async function HomePage() {
-  const [products, categories] = await Promise.all([
-    db.product.findMany({
-      where: { status: 'ACTIVE' },
-      include: { seller: { select: { shopName: true } }, category: true, reviews: { select: { rating: true } } },
-      orderBy: { createdAt: 'desc' },
-      take: 8,
-    }),
-    db.category.findMany({ where: { isActive: true }, orderBy: { sortOrder: 'asc' } }),
-  ])
+function LoginContent() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const [tab, setTab] = useState(searchParams.get('tab') === 'signup' ? 'signup' : 'login')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [name, setName] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+
+  async function handleLogin(e: React.FormEvent) {
+    e.preventDefault()
+    setLoading(true)
+    const res = await signIn('credentials', { email, password, redirect: false })
+    setLoading(false)
+    if (res?.ok) { toast.success('Welcome back!'); router.push('/') }
+    else toast.error('Invalid email or password')
+  }
+
+  async function handleSignup(e: React.FormEvent) {
+    e.preventDefault()
+    setLoading(true)
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password, role: 'BUYER' }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        toast.success('Account created!')
+        await signIn('credentials', { email, password, redirect: false })
+        router.push('/')
+      } else {
+        toast.error(data.error || 'Registration failed')
+      }
+    } catch {
+      toast.error('Something went wrong')
+    }
+    setLoading(false)
+  }
 
   return (
-    <div style={{ background: '#0A0F1E', minHeight: '100vh' }}>
-      <style>{`
-        .hero-btn-primary { display:inline-block; padding:14px 28px; background:#2563EB; color:#fff; border-radius:12px; font-weight:700; font-size:15px; font-family:'Syne',sans-serif; text-decoration:none; border:1px solid #3B82F6; transition:all 0.2s; }
-        .hero-btn-primary:hover { background:#3B82F6; transform:translateY(-1px); box-shadow:0 0 24px #2563EB40; }
-        .hero-btn-outline { display:inline-block; padding:14px 28px; background:transparent; color:#CBD5E1; border-radius:12px; font-weight:600; font-size:15px; text-decoration:none; border:1px solid #1E2D45; transition:all 0.2s; }
-        .hero-btn-outline:hover { border-color:#2563EB; color:#F8FAFF; }
-        .cat-link { display:flex; flex-direction:column; align-items:center; gap:6px; min-width:72px; padding:16px 10px; border-bottom:2px solid transparent; text-decoration:none; transition:all 0.2s; }
-        .cat-link:hover { border-bottom-color:#2563EB; }
-        .cat-link span:last-child { font-size:11px; color:#64748B; white-space:nowrap; }
-        .cat-link:hover span:last-child { color:#60A5FA; }
-        .trust-card { background:#111827; border:1px solid #1E2D45; border-radius:16px; padding:20px; display:flex; gap:14px; align-items:flex-start; transition:border-color 0.2s; }
-        .trust-card:hover { border-color:#2563EB40; }
-        .sell-cta-btn { display:inline-block; padding:14px 32px; background:#2563EB; color:#fff; border-radius:12px; font-weight:700; font-size:15px; font-family:'Syne',sans-serif; text-decoration:none; border:1px solid #3B82F6; transition:all 0.2s; }
-        .sell-cta-btn:hover { background:#3B82F6; transform:translateY(-1px); }
-      `}</style>
-
-      {/* ── Hero ── */}
-      <section style={{ background: 'linear-gradient(160deg, #0D1424 0%, #0F1E3A 50%, #0A0F1E 100%)', padding: '80px 20px', position: 'relative', overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', top: '20%', left: '50%', transform: 'translateX(-50%)', width: '600px', height: '300px', background: '#2563EB10', borderRadius: '50%', filter: 'blur(80px)', pointerEvents: 'none' }} />
-        <div style={{ maxWidth: '1280px', margin: '0 auto', textAlign: 'center', position: 'relative' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#1a2236', border: '1px solid #2563EB40', borderRadius: '20px', padding: '6px 16px', fontSize: '12px', color: '#60A5FA', marginBottom: '24px', fontWeight: 500 }}>
-            <span style={{ width: '6px', height: '6px', background: '#10B981', borderRadius: '50%', display: 'inline-block' }} />
-            Now live across Ghana 🇬🇭
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #0a0f1e 0%, #0f172a 50%, #1e1b4b 100%)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '1rem',
+    }}>
+      <div style={{
+        width: '100%',
+        maxWidth: '420px',
+        background: 'rgba(255,255,255,0.05)',
+        backdropFilter: 'blur(20px)',
+        border: '1px solid rgba(255,255,255,0.1)',
+        borderRadius: '1.5rem',
+        padding: '2.5rem',
+        boxShadow: '0 25px 50px rgba(0,0,0,0.5)',
+      }}>
+        {/* Logo */}
+        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+          <div style={{ fontSize: '2rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em' }}>
+            Find<span style={{ color: '#3b82f6' }}>Solace</span>
           </div>
-          <h1 style={{ fontFamily: 'Syne, sans-serif', fontSize: 'clamp(36px, 6vw, 72px)', fontWeight: 800, color: '#F8FAFF', lineHeight: 1.1, marginBottom: '20px', letterSpacing: '-1px' }}>
-            Find what you need,<br />
-            <span style={{ background: 'linear-gradient(135deg, #2563EB, #60A5FA)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>close to home</span>
-          </h1>
-          <p style={{ fontSize: '18px', color: '#64748B', maxWidth: '520px', margin: '0 auto 40px', lineHeight: 1.7 }}>
-            Ghana's marketplace connecting local sellers with buyers. Electronics, fashion, food & more.
+          <p style={{ color: '#94a3b8', fontSize: '0.875rem', marginTop: '0.25rem' }}>
+            {tab === 'login' ? 'Welcome back!' : 'Create your account'}
           </p>
-          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Link href="/products" className="hero-btn-primary">Browse products →</Link>
-            <Link href="/login?tab=signup" className="hero-btn-outline">Start selling free</Link>
-          </div>
-          <div style={{ display: 'flex', gap: '40px', justifyContent: 'center', marginTop: '56px', flexWrap: 'wrap' }}>
-            {[['1,200+','Active sellers'],['8,500+','Products listed'],['24k+','Orders delivered'],['GH₵','Mobile Money']].map(([val, label]) => (
-              <div key={label} style={{ textAlign: 'center' }}>
-                <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '24px', fontWeight: 800, color: '#F8FAFF' }}>{val}</div>
-                <div style={{ fontSize: '12px', color: '#475569', marginTop: '2px' }}>{label}</div>
-              </div>
-            ))}
-          </div>
         </div>
-      </section>
 
-      {/* ── Categories ── */}
-      <section style={{ borderBottom: '1px solid #1E2D45', background: '#0D1424' }}>
-        <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '0 20px', display: 'flex', gap: '4px', overflowX: 'auto' }}>
-          <Link href="/products" className="cat-link" style={{ borderBottomColor: '#2563EB' }}>
-            <span style={{ fontSize: '22px' }}>🛒</span>
-            <span style={{ color: '#60A5FA', fontWeight: 600 }}>All</span>
-          </Link>
-          {categories.map(cat => (
-            <Link key={cat.id} href={`/products?category=${cat.slug}`} className="cat-link">
-              <span style={{ fontSize: '22px' }}>{cat.iconUrl}</span>
-              <span>{cat.name.split(' ')[0]}</span>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '48px 20px' }}>
-
-        {/* Trust bar */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '56px' }}>
-          {[
-            { icon: '🛡️', title: 'Buyer protection', sub: 'Safe payments on every order' },
-            { icon: '🚚', title: 'Nationwide delivery', sub: 'All 16 regions of Ghana' },
-            { icon: '💳', title: 'Mobile Money', sub: 'MTN MoMo & Vodafone Cash' },
-            { icon: '⚡', title: 'Fast listings', sub: 'AI-powered product descriptions' },
-          ].map(t => (
-            <div key={t.title} className="trust-card">
-              <span style={{ fontSize: '24px', flexShrink: 0 }}>{t.icon}</span>
-              <div>
-                <div style={{ fontSize: '13px', fontWeight: 600, color: '#F8FAFF', marginBottom: '3px', fontFamily: 'Syne, sans-serif' }}>{t.title}</div>
-                <div style={{ fontSize: '12px', color: '#475569' }}>{t.sub}</div>
-              </div>
-            </div>
+        {/* Tabs */}
+        <div style={{
+          display: 'flex',
+          background: 'rgba(255,255,255,0.05)',
+          borderRadius: '0.75rem',
+          padding: '0.25rem',
+          marginBottom: '1.5rem',
+        }}>
+          {['login', 'signup'].map(t => (
+            <button key={t} onClick={() => setTab(t)} style={{
+              flex: 1,
+              padding: '0.6rem',
+              borderRadius: '0.5rem',
+              border: 'none',
+              cursor: 'pointer',
+              fontWeight: 600,
+              fontSize: '0.875rem',
+              transition: 'all 0.2s',
+              background: tab === t ? '#3b82f6' : 'transparent',
+              color: tab === t ? '#fff' : '#94a3b8',
+            }}>
+              {t === 'login' ? 'Sign In' : 'Sign Up'}
+            </button>
           ))}
         </div>
 
-        {/* Featured products */}
-        <div style={{ marginBottom: '48px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <h2 style={{ fontFamily: 'Syne, sans-serif', fontSize: '22px', fontWeight: 800, color: '#F8FAFF' }}>Featured products</h2>
-            <Link href="/products" style={{ fontSize: '13px', color: '#3B82F6', textDecoration: 'none', fontWeight: 500 }}>View all →</Link>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '16px' }}>
-            {products.slice(0, 4).map(p => <ProductCard key={p.id} product={p} />)}
-          </div>
-        </div>
-
-        {/* New arrivals */}
-        {products.length > 4 && (
-          <div style={{ marginBottom: '48px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h2 style={{ fontFamily: 'Syne, sans-serif', fontSize: '22px', fontWeight: 800, color: '#F8FAFF' }}>New arrivals</h2>
-              <Link href="/products" style={{ fontSize: '13px', color: '#3B82F6', textDecoration: 'none', fontWeight: 500 }}>View all →</Link>
+        {/* Form */}
+        <form onSubmit={tab === 'login' ? handleLogin : handleSignup}>
+          {tab === 'signup' && (
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', color: '#94a3b8', fontSize: '0.8rem', marginBottom: '0.4rem', fontWeight: 500 }}>Full Name</label>
+              <input
+                type="text"
+                placeholder="John Doe"
+                value={name}
+                onChange={e => setName(e.target.value)}
+                required
+                style={{
+                  width: '100%',
+                  padding: '0.75rem 1rem',
+                  background: 'rgba(255,255,255,0.08)',
+                  border: '1px solid rgba(255,255,255,0.15)',
+                  borderRadius: '0.75rem',
+                  color: '#fff',
+                  fontSize: '0.9rem',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                }}
+              />
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '16px' }}>
-              {products.slice(4).map(p => <ProductCard key={p.id} product={p} />)}
+          )}
+
+          <div style={{ marginBottom: '1rem' }}>
+            <label style={{ display: 'block', color: '#94a3b8', fontSize: '0.8rem', marginBottom: '0.4rem', fontWeight: 500 }}>Email Address</label>
+            <input
+              type="email"
+              placeholder="you@example.com"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              required
+              style={{
+                width: '100%',
+                padding: '0.75rem 1rem',
+                background: 'rgba(255,255,255,0.08)',
+                border: '1px solid rgba(255,255,255,0.15)',
+                borderRadius: '0.75rem',
+                color: '#fff',
+                fontSize: '0.9rem',
+                outline: 'none',
+                boxSizing: 'border-box',
+              }}
+            />
+          </div>
+
+          <div style={{ marginBottom: '1.5rem' }}>
+            <label style={{ display: 'block', color: '#94a3b8', fontSize: '0.8rem', marginBottom: '0.4rem', fontWeight: 500 }}>Password</label>
+            <div style={{ position: 'relative' }}>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                placeholder="••••••••"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                required
+                style={{
+                  width: '100%',
+                  padding: '0.75rem 3rem 0.75rem 1rem',
+                  background: 'rgba(255,255,255,0.08)',
+                  border: '1px solid rgba(255,255,255,0.15)',
+                  borderRadius: '0.75rem',
+                  color: '#fff',
+                  fontSize: '0.9rem',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{
+                  position: 'absolute',
+                  right: '0.75rem',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: '#94a3b8',
+                  fontSize: '1rem',
+                  padding: '0.25rem',
+                }}
+              >
+                {showPassword ? '🙈' : '👁️'}
+              </button>
             </div>
           </div>
-        )}
 
-        {/* Sell CTA */}
-        <div style={{ background: 'linear-gradient(135deg, #1D3B6E 0%, #1a2236 100%)', border: '1px solid #2563EB40', borderRadius: '24px', padding: '48px 40px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
-          <h2 style={{ fontFamily: 'Syne, sans-serif', fontSize: '28px', fontWeight: 800, color: '#F8FAFF', marginBottom: '12px' }}>Ready to start selling?</h2>
-          <p style={{ color: '#64748B', fontSize: '15px', marginBottom: '28px', maxWidth: '440px', margin: '0 auto 28px' }}>
-            Join 1,200+ sellers on FindSolace. Free to list, weekly payouts to your MoMo wallet.
-          </p>
-          <Link href="/login?tab=signup" className="sell-cta-btn">
-            Create seller account — it's free →
-          </Link>
-        </div>
+          <button
+            type="submit"
+            disabled={loading}
+            style={{
+              width: '100%',
+              padding: '0.85rem',
+              background: loading ? '#1d4ed8' : 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '0.75rem',
+              fontWeight: 700,
+              fontSize: '0.95rem',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              transition: 'all 0.2s',
+              boxShadow: '0 4px 15px rgba(59,130,246,0.4)',
+            }}
+          >
+            {loading ? 'Please wait...' : tab === 'login' ? 'Sign In' : 'Create Account'}
+          </button>
+        </form>
+
+        <p style={{ textAlign: 'center', color: '#64748b', fontSize: '0.8rem', marginTop: '1.5rem' }}>
+          {tab === 'login' ? "Don't have an account? " : 'Already have an account? '}
+          <button onClick={() => setTab(tab === 'login' ? 'signup' : 'login')} style={{
+            background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', fontWeight: 600,
+          }}>
+            {tab === 'login' ? 'Sign Up' : 'Sign In'}
+          </button>
+        </p>
       </div>
     </div>
   )
+}
+
+export default function LoginPage() {
+  return <Suspense><LoginContent /></Suspense>
 }
