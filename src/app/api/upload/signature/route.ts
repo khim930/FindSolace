@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 // src/app/api/upload/signature/route.ts
 // Returns a signed Cloudinary upload credential so browsers can upload directly
 import { NextRequest, NextResponse } from 'next/server'

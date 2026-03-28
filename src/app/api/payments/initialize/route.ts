@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 // src/app/api/payments/initialize/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { initializePayment } from '@/lib/paystack'

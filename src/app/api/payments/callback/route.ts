@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 // src/app/api/payments/callback/route.ts
 // Paystack redirects here after payment attempt
 

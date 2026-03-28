@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 // src/app/api/payments/webhook/route.ts
 // Paystack sends POST here on every payment event — more reliable than redirect callback
 
