@@ -94,3 +94,7 @@
 
   .section-title { font-family: 'Syne', sans-serif; @apply text-xl font-bold; color: var(--white); }
 }
+input, textarea, select {
+  color: #111827 !important;
+  background-color: #ffffff !important;
+}
