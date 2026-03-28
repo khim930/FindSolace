@@ -4,6 +4,10 @@ import Link from 'next/link'
 export function Footer() {
   return (
     <footer style={{ background: '#080D18', borderTop: '1px solid #1E2D45', marginTop: '80px' }}>
+      <style>{`
+        .footer-link { color: #64748B; transition: color 0.2s; }
+        .footer-link:hover { color: #94A3B8; }
+      `}</style>
       <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '60px 20px 32px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '40px', marginBottom: '48px' }}>
           <div>
@@ -22,16 +26,13 @@ export function Footer() {
             <div key={col.title}>
               <h4 style={{ fontSize: '12px', fontWeight: 700, color: '#F8FAFF', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '16px', fontFamily: 'Syne, sans-serif' }}>{col.title}</h4>
               {col.links.map(([label, href]) => (
-                <Link key={href} href={href} style={{ display: 'block', fontSize: '13px', color: '#64748B', marginBottom: '10px', transition: 'color 0.2s', textDecoration: 'none' }}
-                  onMouseOver={e => (e.target as HTMLElement).style.color = '#94A3B8'}
-                  onMouseOut={e => (e.target as HTMLElement).style.color = '#64748B'}>
+                <Link key={href} href={href} className="footer-link" style={{ display: 'block', fontSize: '13px', marginBottom: '10px', textDecoration: 'none' }}>
                   {label}
                 </Link>
               ))}
             </div>
           ))}
         </div>
-
         <div style={{ borderTop: '1px solid #1E2D45', paddingTop: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
           <p style={{ fontSize: '12px', color: '#475569' }}>© 2025 FindSolace. All rights reserved.</p>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
