@@ -4,141 +4,131 @@ import { db } from '@/lib/db'
 import { ProductCard } from '@/components/product/ProductCard'
 
 export default async function HomePage() {
-  const [products, categories, sponsored] = await Promise.all([
+  const [products, categories] = await Promise.all([
     db.product.findMany({
-      where:   { status: 'ACTIVE' },
-      include: { seller: { select: { shopName: true } }, category: true },
+      where: { status: 'ACTIVE' },
+      include: { seller: { select: { shopName: true } }, category: true, reviews: { select: { rating: true } } },
       orderBy: { createdAt: 'desc' },
-      take:    8,
+      take: 8,
     }),
     db.category.findMany({ where: { isActive: true }, orderBy: { sortOrder: 'asc' } }),
-    db.sponsoredContent.findMany({
-      where:   { status: 'LIVE' },
-      include: { seller: { select: { shopName: true } } },
-      take:    3,
-    }),
   ])
 
-  const featured   = products.filter(p => p.isSponsored).slice(0, 4)
-  const recent     = products.filter(p => !p.isSponsored).slice(0, 4)
-
   return (
-    <>
-      {/* ── Hero ─────────────────────────────────────────────────────── */}
-      <section className="bg-blue-600 text-white px-4 py-14 sm:py-20">
-        <div className="max-w-3xl mx-auto text-center">
-          <h1 className="text-3xl sm:text-4xl font-bold mb-4 leading-tight">
-            Find what you need, close to home
+    <div style={{ background: '#0A0F1E', minHeight: '100vh' }}>
+
+      {/* ── Hero ── */}
+      <section style={{ background: 'linear-gradient(160deg, #0D1424 0%, #0F1E3A 50%, #0A0F1E 100%)', padding: '80px 20px', position: 'relative', overflow: 'hidden' }}>
+        {/* Background glow */}
+        <div style={{ position: 'absolute', top: '20%', left: '50%', transform: 'translateX(-50%)', width: '600px', height: '300px', background: '#2563EB15', borderRadius: '50%', filter: 'blur(80px)', pointerEvents: 'none' }} />
+
+        <div style={{ maxWidth: '1280px', margin: '0 auto', textAlign: 'center', position: 'relative' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#1a2236', border: '1px solid #2563EB40', borderRadius: '20px', padding: '6px 16px', fontSize: '12px', color: '#60A5FA', marginBottom: '24px', fontWeight: 500 }}>
+            <span style={{ width: '6px', height: '6px', background: '#10B981', borderRadius: '50%', display: 'inline-block' }} />
+            Now live across Ghana 🇬🇭
+          </div>
+
+          <h1 style={{ fontFamily: 'Syne, sans-serif', fontSize: 'clamp(36px, 6vw, 72px)', fontWeight: 800, color: '#F8FAFF', lineHeight: 1.1, marginBottom: '20px', letterSpacing: '-1px' }}>
+            Find what you need,<br />
+            <span style={{ background: 'linear-gradient(135deg, #2563EB, #60A5FA)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>close to home</span>
           </h1>
-          <p className="text-blue-100 text-base sm:text-lg mb-8 max-w-xl mx-auto">
-            Shop from local sellers across Ghana — electronics, fashion, food & more. Fast delivery, Mobile Money accepted.
+
+          <p style={{ fontSize: '18px', color: '#64748B', maxWidth: '520px', margin: '0 auto 40px', lineHeight: 1.7 }}>
+            Ghana's marketplace connecting local sellers with buyers. Electronics, fashion, food & more — delivered to your door.
           </p>
-          <div className="flex gap-3 justify-center flex-wrap">
-            <Link href="/products" className="bg-white text-blue-600 px-6 py-3 rounded-lg font-medium text-sm hover:bg-blue-50 transition-colors">
-              Browse products
+
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <Link href="/products" style={{ padding: '14px 28px', background: '#2563EB', color: '#fff', borderRadius: '12px', fontWeight: 700, fontSize: '15px', fontFamily: 'Syne, sans-serif', textDecoration: 'none', border: '1px solid #3B82F6', transition: 'all 0.2s' }}>
+              Browse products →
             </Link>
-            <Link href="/login?tab=signup" className="border border-white text-white px-6 py-3 rounded-lg font-medium text-sm hover:bg-blue-500 transition-colors">
+            <Link href="/login?tab=signup" style={{ padding: '14px 28px', background: 'transparent', color: '#CBD5E1', borderRadius: '12px', fontWeight: 600, fontSize: '15px', textDecoration: 'none', border: '1px solid #1E2D45' }}>
               Start selling free
             </Link>
           </div>
+
+          {/* Stats */}
+          <div style={{ display: 'flex', gap: '32px', justifyContent: 'center', marginTop: '56px', flexWrap: 'wrap' }}>
+            {[['1,200+', 'Active sellers'], ['8,500+', 'Products listed'], ['24k+', 'Orders delivered'], ['GH₵', 'Mobile Money']].map(([val, label]) => (
+              <div key={label} style={{ textAlign: 'center' }}>
+                <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '24px', fontWeight: 800, color: '#F8FAFF' }}>{val}</div>
+                <div style={{ fontSize: '12px', color: '#475569', marginTop: '2px' }}>{label}</div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
-      {/* ── Trust badges ─────────────────────────────────────────────── */}
-      <section className="bg-blue-50 border-b border-blue-100 py-4 px-4">
-        <div className="max-w-7xl mx-auto grid grid-cols-3 gap-4 text-center">
-          {[
-            { icon: '🛡️', label: 'Buyer protection', sub: 'Safe payments & refunds' },
-            { icon: '🚚', label: 'Nationwide delivery', sub: 'Accra, Kumasi & more' },
-            { icon: '💳', label: 'Mobile Money', sub: 'MTN MoMo & Vodafone Cash' },
-          ].map(t => (
-            <div key={t.label}>
-              <div className="text-2xl mb-1">{t.icon}</div>
-              <div className="text-xs font-medium text-blue-900">{t.label}</div>
-              <div className="text-xs text-blue-500 hidden sm:block">{t.sub}</div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── Categories ───────────────────────────────────────────────── */}
-      <section className="bg-white border-b border-gray-200 px-4 py-3">
-        <div className="max-w-7xl mx-auto flex gap-3 overflow-x-auto pb-1">
-          <Link href="/products" className="flex flex-col items-center gap-1 min-w-[64px] p-2 rounded-lg hover:bg-blue-50 border border-transparent hover:border-blue-200 transition-colors">
-            <span className="text-xl">🛒</span>
-            <span className="text-xs text-gray-600 whitespace-nowrap">All</span>
+      {/* ── Categories ── */}
+      <section style={{ borderBottom: '1px solid #1E2D45', background: '#0D1424' }}>
+        <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '0 20px', display: 'flex', gap: '4px', overflowX: 'auto' }}>
+          <Link href="/products" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', minWidth: '72px', padding: '16px 10px', borderBottom: '2px solid #2563EB', textDecoration: 'none' }}>
+            <span style={{ fontSize: '22px' }}>🛒</span>
+            <span style={{ fontSize: '11px', color: '#60A5FA', fontWeight: 600, whiteSpace: 'nowrap' }}>All</span>
           </Link>
           {categories.map(cat => (
-            <Link key={cat.id} href={`/products?category=${cat.slug}`} className="flex flex-col items-center gap-1 min-w-[64px] p-2 rounded-lg hover:bg-blue-50 border border-transparent hover:border-blue-200 transition-colors">
-              <span className="text-xl">{cat.iconUrl}</span>
-              <span className="text-xs text-gray-600 whitespace-nowrap">{cat.name}</span>
+            <Link key={cat.id} href={`/products?category=${cat.slug}`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', minWidth: '72px', padding: '16px 10px', borderBottom: '2px solid transparent', textDecoration: 'none', transition: 'all 0.2s' }}>
+              <span style={{ fontSize: '22px' }}>{cat.iconUrl}</span>
+              <span style={{ fontSize: '11px', color: '#64748B', whiteSpace: 'nowrap' }}>{cat.name.split(' ')[0]}</span>
             </Link>
           ))}
         </div>
       </section>
 
-      <div className="max-w-7xl mx-auto px-4 py-8 space-y-12">
+      {/* ── Products ── */}
+      <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '48px 20px' }}>
 
-        {/* ── Featured / sponsored products ────────────────────────── */}
-        {featured.length > 0 && (
-          <section>
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">Featured products</h2>
-              <Link href="/products?sponsored=true" className="text-sm text-blue-600 hover:underline">See all</Link>
+        {/* Trust bar */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '56px' }}>
+          {[
+            { icon: '🛡️', title: 'Buyer protection', sub: 'Safe payments on every order' },
+            { icon: '🚚', title: 'Nationwide delivery', sub: 'All 16 regions of Ghana' },
+            { icon: '💳', title: 'Mobile Money', sub: 'MTN MoMo & Vodafone Cash' },
+            { icon: '⚡', title: 'Fast listings', sub: 'AI-powered product descriptions' },
+          ].map(t => (
+            <div key={t.title} style={{ background: '#111827', border: '1px solid #1E2D45', borderRadius: '16px', padding: '20px', display: 'flex', gap: '14px', alignItems: 'flex-start' }}>
+              <span style={{ fontSize: '24px', flexShrink: 0 }}>{t.icon}</span>
+              <div>
+                <div style={{ fontSize: '13px', fontWeight: 600, color: '#F8FAFF', marginBottom: '3px', fontFamily: 'Syne, sans-serif' }}>{t.title}</div>
+                <div style={{ fontSize: '12px', color: '#475569' }}>{t.sub}</div>
+              </div>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              {featured.map(p => <ProductCard key={p.id} product={p} />)}
-            </div>
-          </section>
-        )}
+          ))}
+        </div>
 
-        {/* ── Sponsored content ────────────────────────────────────── */}
-        {sponsored.length > 0 && (
-          <section>
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">Sponsored content</h2>
-              <Link href="/blog" className="text-sm text-blue-600 hover:underline">View blog</Link>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {sponsored.map(s => (
-                <div key={s.id} className="card hover:border-blue-300 transition-colors cursor-pointer">
-                  <div className="h-24 bg-blue-50 flex items-center justify-center text-4xl">📰</div>
-                  <div className="p-4">
-                    <span className="badge badge-amber mb-2">Sponsored</span>
-                    <h3 className="text-sm font-medium text-gray-900 mb-1">{s.title}</h3>
-                    <p className="text-xs text-gray-500">by {s.seller.shopName}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* ── New arrivals ─────────────────────────────────────────── */}
-        <section>
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">New arrivals</h2>
-            <Link href="/products" className="text-sm text-blue-600 hover:underline">See all</Link>
+        {/* Featured products */}
+        <div style={{ marginBottom: '48px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <h2 style={{ fontFamily: 'Syne, sans-serif', fontSize: '22px', fontWeight: 800, color: '#F8FAFF' }}>Featured products</h2>
+            <Link href="/products" style={{ fontSize: '13px', color: '#3B82F6', textDecoration: 'none', fontWeight: 500 }}>View all →</Link>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {(recent.length > 0 ? recent : products.slice(0, 4)).map(p => (
-              <ProductCard key={p.id} product={p} />
-            ))}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '16px' }}>
+            {products.slice(0, 4).map(p => <ProductCard key={p.id} product={p} />)}
           </div>
-        </section>
+        </div>
 
-        {/* ── Sell CTA ─────────────────────────────────────────────── */}
-        <section className="bg-blue-600 rounded-2xl p-8 text-center text-white">
-          <h2 className="text-2xl font-bold mb-3">Ready to start selling?</h2>
-          <p className="text-blue-100 mb-6 max-w-md mx-auto text-sm">
+        {/* New arrivals */}
+        <div style={{ marginBottom: '48px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <h2 style={{ fontFamily: 'Syne, sans-serif', fontSize: '22px', fontWeight: 800, color: '#F8FAFF' }}>New arrivals</h2>
+            <Link href="/products" style={{ fontSize: '13px', color: '#3B82F6', textDecoration: 'none', fontWeight: 500 }}>View all →</Link>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '16px' }}>
+            {(products.length > 4 ? products.slice(4) : products).map(p => <ProductCard key={p.id} product={p} />)}
+          </div>
+        </div>
+
+        {/* Sell CTA */}
+        <div style={{ background: 'linear-gradient(135deg, #1D3B6E 0%, #1a2236 100%)', border: '1px solid #2563EB40', borderRadius: '24px', padding: '48px 40px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', top: '-40px', right: '-40px', width: '200px', height: '200px', background: '#2563EB10', borderRadius: '50%', filter: 'blur(40px)' }} />
+          <h2 style={{ fontFamily: 'Syne, sans-serif', fontSize: '28px', fontWeight: 800, color: '#F8FAFF', marginBottom: '12px' }}>Ready to start selling?</h2>
+          <p style={{ color: '#64748B', fontSize: '15px', marginBottom: '28px', maxWidth: '440px', margin: '0 auto 28px' }}>
             Join 1,200+ sellers on FindSolace. Free to list, weekly payouts to your MoMo wallet.
           </p>
-          <Link href="/login?tab=signup" className="bg-white text-blue-600 px-6 py-3 rounded-lg font-medium text-sm hover:bg-blue-50 transition-colors inline-block">
-            Create seller account — it's free
+          <Link href="/login?tab=signup" style={{ display: 'inline-block', padding: '14px 32px', background: '#2563EB', color: '#fff', borderRadius: '12px', fontWeight: 700, fontSize: '15px', fontFamily: 'Syne, sans-serif', textDecoration: 'none', border: '1px solid #3B82F6' }}>
+            Create seller account — it's free →
           </Link>
-        </section>
-
+        </div>
       </div>
-    </>
+    </div>
   )
 }

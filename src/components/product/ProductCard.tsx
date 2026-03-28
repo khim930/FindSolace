@@ -1,21 +1,14 @@
 'use client'
 // src/components/product/ProductCard.tsx
-
 import Link from 'next/link'
 import Image from 'next/image'
 import { useCartStore } from '@/lib/store'
 import toast from 'react-hot-toast'
 
 interface Product {
-  id:          string
-  title:       string
-  slug:        string
-  price:       number
-  comparePrice: number | null
-  images:      any
-  isSponsored: boolean
-  seller:      { shopName: string }
-  reviews?:    { rating: number }[]
+  id: string; title: string; slug: string; price: number
+  comparePrice: number | null; images: any; isSponsored: boolean
+  seller: { shopName: string }; reviews?: { rating: number }[]
 }
 
 export function ProductCard({ product: p }: { product: Product }) {
@@ -23,68 +16,58 @@ export function ProductCard({ product: p }: { product: Product }) {
   const images  = Array.isArray(p.images) ? p.images : []
   const img     = images[0]?.thumbnail ?? images[0]?.url ?? null
   const disc    = p.comparePrice ? Math.round(((p.comparePrice - p.price) / p.comparePrice) * 100) : 0
-  const avgRating = p.reviews?.length
-    ? (p.reviews.reduce((s, r) => s + r.rating, 0) / p.reviews.length).toFixed(1)
-    : null
+  const avgRating = p.reviews?.length ? (p.reviews.reduce((s, r) => s + r.rating, 0) / p.reviews.length).toFixed(1) : null
 
-  function handleAddToCart(e: React.MouseEvent) {
+  function handleAdd(e: React.MouseEvent) {
     e.preventDefault()
-    addItem({
-      id:       p.id,
-      title:    p.title,
-      price:    p.price,
-      image:    img ?? '',
-      seller:   p.seller.shopName,
-      sellerId: (p as any).sellerId ?? '',
-      stock:    (p as any).stockQty ?? 99,
-    })
+    addItem({ id: p.id, title: p.title, price: p.price, image: img ?? '', seller: p.seller.shopName, sellerId: (p as any).sellerId ?? '', stock: (p as any).stockQty ?? 99 })
     toast.success(`${p.title} added to cart`)
   }
 
   return (
-    <Link href={`/products/${p.slug}`} className="card group hover:border-blue-300 transition-colors">
-      {/* Image */}
-      <div className="relative h-40 bg-blue-50 overflow-hidden">
-        {img ? (
-          <Image src={img} alt={p.title} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-5xl bg-blue-50">🛍️</div>
-        )}
-        {p.isSponsored && (
-          <span className="absolute top-2 left-2 badge badge-amber text-xs">Sponsored</span>
-        )}
-        {disc > 0 && (
-          <span className="absolute top-2 right-2 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded font-medium">-{disc}%</span>
-        )}
-      </div>
+    <Link href={`/products/${p.slug}`} style={{ textDecoration: 'none', display: 'block' }}>
+      <div style={{ background: '#111827', border: '1px solid #1E2D45', borderRadius: '16px', overflow: 'hidden', transition: 'all 0.2s', cursor: 'pointer' }}
+        onMouseOver={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = '#2563EB'; el.style.transform = 'translateY(-2px)'; el.style.boxShadow = '0 0 30px #2563EB20' }}
+        onMouseOut={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = '#1E2D45'; el.style.transform = 'translateY(0)'; el.style.boxShadow = 'none' }}>
 
-      {/* Body */}
-      <div className="p-3">
-        <h3 className="text-sm font-medium text-gray-900 truncate mb-1">{p.title}</h3>
-        <div className="flex items-baseline gap-2 mb-1">
-          <span className="text-base font-semibold text-blue-600">
-            GH₵ {p.price.toLocaleString('en-GH', { minimumFractionDigits: 2 })}
-          </span>
-          {p.comparePrice && (
-            <span className="text-xs text-gray-400 line-through">
-              GH₵ {p.comparePrice.toLocaleString('en-GH', { minimumFractionDigits: 2 })}
-            </span>
+        {/* Image */}
+        <div style={{ position: 'relative', height: '180px', background: '#1a2236', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {img ? (
+            <Image src={img} alt={p.title} fill style={{ objectFit: 'cover' }} />
+          ) : (
+            <span style={{ fontSize: '48px', opacity: 0.4 }}>🛍️</span>
+          )}
+          {p.isSponsored && (
+            <span style={{ position: 'absolute', top: '10px', left: '10px', background: '#451A03', color: '#FCD34D', fontSize: '10px', fontWeight: 700, padding: '3px 8px', borderRadius: '20px', border: '1px solid #F59E0B40' }}>Sponsored</span>
+          )}
+          {disc > 0 && (
+            <span style={{ position: 'absolute', top: '10px', right: '10px', background: '#450A0A', color: '#F87171', fontSize: '11px', fontWeight: 700, padding: '3px 8px', borderRadius: '20px', border: '1px solid #EF444440' }}>-{disc}%</span>
           )}
         </div>
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-gray-400 truncate">{p.seller.shopName}</span>
-          {avgRating && <span className="text-xs text-amber-500">★ {avgRating}</span>}
-        </div>
-      </div>
 
-      {/* Add to cart */}
-      <div className="px-3 pb-3">
-        <button
-          onClick={handleAddToCart}
-          className="w-full btn-primary text-xs py-2"
-        >
-          Add to cart
-        </button>
+        {/* Body */}
+        <div style={{ padding: '14px 16px' }}>
+          <h3 style={{ fontSize: '14px', fontWeight: 600, color: '#F8FAFF', marginBottom: '6px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', fontFamily: 'DM Sans, sans-serif' }}>{p.title}</h3>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '6px' }}>
+            <span style={{ fontSize: '18px', fontWeight: 800, color: '#60A5FA', fontFamily: 'Syne, sans-serif' }}>
+              GH₵ {p.price.toLocaleString('en-GH', { minimumFractionDigits: 2 })}
+            </span>
+            {p.comparePrice && (
+              <span style={{ fontSize: '12px', color: '#475569', textDecoration: 'line-through' }}>
+                GH₵ {p.comparePrice.toLocaleString('en-GH', { minimumFractionDigits: 2 })}
+              </span>
+            )}
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <span style={{ fontSize: '12px', color: '#475569', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', maxWidth: '120px' }}>{p.seller.shopName}</span>
+            {avgRating && <span style={{ fontSize: '12px', color: '#F59E0B', fontWeight: 600 }}>★ {avgRating}</span>}
+          </div>
+          <button onClick={handleAdd} style={{ width: '100%', padding: '9px', background: '#1D3B6E', color: '#60A5FA', border: '1px solid #2563EB40', borderRadius: '10px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}
+            onMouseOver={e => { const el = e.target as HTMLElement; el.style.background = '#2563EB'; el.style.color = '#fff'; el.style.borderColor = '#3B82F6' }}
+            onMouseOut={e => { const el = e.target as HTMLElement; el.style.background = '#1D3B6E'; el.style.color = '#60A5FA'; el.style.borderColor = '#2563EB40' }}>
+            Add to cart
+          </button>
+        </div>
       </div>
     </Link>
   )
