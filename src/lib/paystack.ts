@@ -1,66 +1,84 @@
 // src/lib/paystack.ts
-// Paystack integration — Ghana payments: MTN MoMo, Vodafone Cash, Cards
-// Docs: https://paystack.com/docs/api
+// Paystack integration with Split Payment support
+// Docs: https://paystack.com/docs/payments/split-payments
 
 const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY!
-const PAYSTACK_BASE   = 'https://api.paystack.co'
+const BASE = 'https://api.paystack.co'
 
 const headers = {
   Authorization: `Bearer ${PAYSTACK_SECRET}`,
   'Content-Type': 'application/json',
 }
 
-// ─── Types ───────────────────────────────────────────────────────────────────
-
-export type PaystackChannel = 'card' | 'mobile_money' | 'bank' | 'ussd'
-
-export interface InitializePaymentParams {
-  email:        string
-  amountGHS:    number        // amount in Ghana Cedis — we convert to pesewas
-  reference:    string        // unique order reference
-  callbackUrl:  string        // redirect after payment
-  metadata?: {
-    orderId:     string
-    buyerName:   string
-    cartItems:   { title: string; quantity: number; price: number }[]
-  }
-  channels?: PaystackChannel[]
+// ─── Create a subaccount for a seller ────────────────────────────────────────
+// Call this when a seller registers and provides their Paystack details
+export async function createSubaccount(params: {
+  businessName:    string
+  bankCode:        string   // e.g. "GH130101" for MTN MoMo
+  accountNumber:   string   // MoMo number or bank account
+  percentageCharge: number  // platform keeps this %, seller gets the rest
+}) {
+  const res  = await fetch(`${BASE}/subaccount`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      business_name:     params.businessName,
+      settlement_bank:   params.bankCode,
+      account_number:    params.accountNumber,
+      percentage_charge: params.percentageCharge,
+      description:       `FindSolace seller: ${params.businessName}`,
+    }),
+  })
+  const data = await res.json()
+  if (!data.status) throw new Error(data.message || 'Failed to create subaccount')
+  return data.data as { subaccount_code: string; id: number; business_name: string }
 }
 
-export interface PaystackTransaction {
-  id:          number
-  reference:   string
-  amount:      number
-  status:      'success' | 'failed' | 'abandoned' | 'pending'
-  channel:     string
-  currency:    string
-  paid_at:     string
-  customer: {
-    email:      string
-    first_name: string
-    last_name:  string
-    phone:      string
-  }
+// ─── Update a seller's commission rate ───────────────────────────────────────
+export async function updateSubaccountRate(subaccountCode: string, percentageCharge: number) {
+  const res  = await fetch(`${BASE}/subaccount/${subaccountCode}`, {
+    method: 'PUT',
+    headers,
+    body: JSON.stringify({ percentage_charge: percentageCharge }),
+  })
+  const data = await res.json()
+  if (!data.status) throw new Error(data.message || 'Failed to update subaccount')
+  return data.data
 }
 
-// ─── Initialize a payment ─────────────────────────────────────────────────────
-
-export async function initializePayment(params: InitializePaymentParams) {
+// ─── Initialize payment WITH split ───────────────────────────────────────────
+export async function initializePayment(params: {
+  email:           string
+  amountGHS:       number
+  reference:       string
+  callbackUrl:     string
+  subaccountCode?: string   // seller's Paystack subaccount — if set, split applies
+  metadata?:       Record<string, any>
+}) {
   const amountInPesewas = Math.round(params.amountGHS * 100)
 
-  const body = {
+  const body: any = {
     email:        params.email,
     amount:       amountInPesewas,
     reference:    params.reference,
     callback_url: params.callbackUrl,
     currency:     'GHS',
-    channels:     params.channels ?? ['card', 'mobile_money'],
+    channels:     ['card', 'mobile_money'],
     metadata:     params.metadata ?? {},
   }
 
-  const res  = await fetch(`${PAYSTACK_BASE}/transaction/initialize`, { method: 'POST', headers, body: JSON.stringify(body) })
-  const data = await res.json()
+  // If seller has a subaccount, enable split
+  // "bearer": "subaccount" means seller bears transaction fees
+  // "bearer": "account" means platform bears transaction fees
+  if (params.subaccountCode) {
+    body.subaccount = params.subaccountCode
+    body.bearer     = 'subaccount'
+    // transaction_charge: optional flat fee to platform in pesewas
+    // percentage_charge is set on the subaccount itself
+  }
 
+  const res  = await fetch(`${BASE}/transaction/initialize`, { method: 'POST', headers, body: JSON.stringify(body) })
+  const data = await res.json()
   if (!data.status) throw new Error(data.message || 'Failed to initialize payment')
 
   return {
@@ -70,36 +88,38 @@ export async function initializePayment(params: InitializePaymentParams) {
   }
 }
 
-// ─── Verify a payment ─────────────────────────────────────────────────────────
-
-export async function verifyPayment(reference: string): Promise<PaystackTransaction> {
-  const res  = await fetch(`${PAYSTACK_BASE}/transaction/verify/${reference}`, { headers })
+// ─── Verify payment ───────────────────────────────────────────────────────────
+export async function verifyPayment(reference: string) {
+  const res  = await fetch(`${BASE}/transaction/verify/${reference}`, { headers })
   const data = await res.json()
-
   if (!data.status) throw new Error(data.message || 'Failed to verify payment')
-
-  return data.data as PaystackTransaction
-}
-
-// ─── List transactions (admin) ────────────────────────────────────────────────
-
-export async function listTransactions(page = 1, perPage = 50) {
-  const res  = await fetch(`${PAYSTACK_BASE}/transaction?page=${page}&perPage=${perPage}`, { headers })
-  const data = await res.json()
   return data.data
 }
 
-// ─── Generate unique order reference ─────────────────────────────────────────
+// ─── List Ghana banks / MoMo providers ───────────────────────────────────────
+// Use these codes when creating subaccounts
+export async function getGhanaBanks() {
+  const res  = await fetch(`${BASE}/bank?country=ghana&currency=GHS`, { headers })
+  const data = await res.json()
+  return data.data as { name: string; code: string; type: string }[]
+}
 
+// ─── Generate order reference ─────────────────────────────────────────────────
 export function generateReference(orderId: string): string {
   const ts = Date.now().toString(36).toUpperCase()
   return `FS-${ts}-${orderId.slice(-6).toUpperCase()}`
 }
 
-// ─── Validate Paystack webhook signature ──────────────────────────────────────
-
+// ─── Validate webhook ─────────────────────────────────────────────────────────
 export function validateWebhookSignature(payload: string, signature: string): boolean {
   const crypto = require('crypto')
   const hash   = crypto.createHmac('sha512', PAYSTACK_SECRET).update(payload).digest('hex')
   return hash === signature
 }
+
+// ─── Ghana MoMo bank codes (for subaccount creation) ─────────────────────────
+export const GHANA_MOMO_CODES = {
+  MTN:      'MTN',
+  VODAFONE: 'VOD',
+  AIRTELTIGO: 'ATL',
+} as const

@@ -97,6 +97,10 @@ model SellerProfile {
   totalEarnings    Float        @default(0)
   pendingPayout    Float        @default(0)
   momoNumber       String?
+  paystackSubaccountCode  String?                      // e.g. ACCT_xxxxxxxxxx
+  paystackBankCode        String?                      // MTN, VOD, ATL
+  paystackAccountNumber   String?                      // MoMo or bank account
+  paystackVerified        Boolean      @default(false)
   status           SellerStatus @default(PENDING)
   approvedAt       DateTime?
   createdAt        DateTime     @default(now())
@@ -260,3 +264,10 @@ model NewsletterSubscriber {
 
   @@map("newsletter_subscribers")
 }
+
+// ─── PAYSTACK SPLIT ADDITIONS ─────────────────────────────────────────────────
+// Add these fields to SellerProfile model manually if not already present:
+// paystackSubaccountCode  String?   // e.g. ACCT_xxxxxxxxxx
+// paystackBankCode        String?   // e.g. MTN, VOD, ATL or bank code
+// paystackAccountNumber   String?   // MoMo number or bank account number
+// commissionRate          Float     @default(5.0)  // your cut %
